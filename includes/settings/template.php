@@ -3,25 +3,32 @@ namespace CDevelopers\Query\Terms;
 
 $data = array(
     array(
-        'field_id' => 'hide_title',
-        'id'          => $args['widget']->get_field_id( 'hide_title' ),
-        'name'        => $args['widget']->get_field_name( 'hide_title' ),
+        'field_id' => 'show_title',
+        'id'          => $args['widget']->get_field_id( 'show_title' ),
+        'name'        => $args['widget']->get_field_name( 'show_title' ),
         'type'        => 'checkbox',
-        'label'       => __( 'Hide the widget title', DOMAIN ),
+        'label'       => __( 'Display Widget Title', DOMAIN ),
+        ),
+    array(
+        'field_id' => 'hierarchical',
+        'id'    => $args['widget']->get_field_id( 'hierarchical' ),
+        'name'  => $args['widget']->get_field_name( 'hierarchical' ),
+        'type'  => 'checkbox',
+        'label' => __( 'Hierarchical', 'advanced-categories-this' ),
         ),
     array(
         'field_id' => 'show_count',
         'id'    => $args['widget']->get_field_id( 'show_count' ),
         'name'  => $args['widget']->get_field_name( 'show_count' ),
         'type'  => 'checkbox',
-        'label' => __( 'Display Post Count?', 'advanced-categories-this' ),
+        'label' => __( 'Display Post Count', 'advanced-categories-this' ),
         ),
     array(
         'field_id' => 'show_desc',
         'id'    => $args['widget']->get_field_id( 'show_desc' ),
         'name'  => $args['widget']->get_field_name( 'show_desc' ),
         'type'  => 'checkbox',
-        'label' => __( 'Display Category Description?', 'advanced-categories-this' ),
+        'label' => __( 'Display Term Description', 'advanced-categories-this' ),
         ),
     array(
         'field_id' => 'desc_length',
@@ -55,19 +62,6 @@ $data = array(
                 </span>
             </p>
         </div>',
-        ),
-    array(
-        'field_id' => 'list_style',
-        'id'          => $args['widget']->get_field_id( 'list_style' ),
-        'name'        => $args['widget']->get_field_name( 'list_style' ),
-        'type'        => 'select',
-        'options'      => array(
-            'div' => __( 'Blocks (div)' ),
-            'ul' => __( 'Unordered List (ul)' ),
-            'ol' => __( 'Ordered List (ol)' ),
-            ),
-        'label'       => __('List Format:', DOMAIN),
-        'input_class' => 'widefat',
         ),
 );
 

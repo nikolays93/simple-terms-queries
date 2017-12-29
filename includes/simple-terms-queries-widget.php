@@ -24,6 +24,7 @@ class Simple_Terms_Queries_Widget extends \WP_Widget
 
 	public static function _defaults()
 	{
+		// checkbox must be 0 or need will be update form file
 		$d = array(
 			'title'          => __( 'Terms' ),
 			'orderby'        => 'name',
@@ -33,13 +34,14 @@ class Simple_Terms_Queries_Widget extends \WP_Widget
 			'thumb_size'     => 0,
 			'thumb_size_w'   => 55,
 			'thumb_size_h'   => 55,
-			'show_desc'      => 1,
+			'show_desc'      => 0,
 			'desc_length'    => 15,
 			'list_style'     => 'ul',
 			'show_count'     => 0,
-			'tax'            => 'category',
-			'max'            => -1,
-			'hide_title'     => false,
+			'taxanomy'       => 'category',
+			'number'         => -1,
+			'show_title'     => 0,
+			'hierarchical'   => 1,
 			);
 
 		return $d;
@@ -76,20 +78,12 @@ class Simple_Terms_Queries_Widget extends \WP_Widget
 		};
 		?>
 
-		<div class="advanced-categories-widget advanced-categories-wrap">
+		<div class="st-widget st-wrap">
 
 			<?php
-			if( ! empty( $categories ) ) :
+			if( ! empty( $categories ) || ! false ) :
 
-				Widget_Views::start_list( $instance, $categories );
-
-					foreach( $categories as $term ) {
-						Widget_Views::start_list_item( $term, $instance, $categories );
-							Widget_Views::list_item( $term, $instance, $categories );
-						Widget_Views::end_list_item( $term, $instance, $categories );
-					}
-
-				Widget_Views::end_list( $instance, $categories );
+				Widget_Views::recursive_list_item( $categories, $instance );
 
 			endif;
 			?>
@@ -99,16 +93,16 @@ class Simple_Terms_Queries_Widget extends \WP_Widget
 		<?php echo $args['after_widget']; ?>
 
 	<?php
-		$fields = array_merge(
-			Utils::get_settings( 'global.php',    array('widget' => $this, 'instance' => $instance) ),
-			Utils::get_settings( 'template.php',  array('widget' => $this, 'instance' => $instance) ),
-			Utils::get_settings( 'thumbnail.php', array('widget' => $this, 'instance' => $instance) ),
-			Utils::get_settings( 'query.php',     array('widget' => $this, 'instance' => $instance) )
-		);
+		// $fields = array_merge(
+		// 	Utils::get_settings( 'global.php',    array('widget' => $this, 'instance' => $instance) ),
+		// 	Utils::get_settings( 'template.php',  array('widget' => $this, 'instance' => $instance) ),
+		// 	Utils::get_settings( 'thumbnail.php', array('widget' => $this, 'instance' => $instance) ),
+		// 	Utils::get_settings( 'query.php',     array('widget' => $this, 'instance' => $instance) )
+		// );
 
-		echo "<pre>";
-		var_dump( $fields );
-		echo "</pre>";
+		// echo "<pre>";
+		// var_dump( $fields );
+		// echo "</pre>";
 	}
 
 	// validate
@@ -166,7 +160,7 @@ class Simple_Terms_Queries_Widget extends \WP_Widget
 		// $instance['title']     = sanitize_text_field( $new_instance['title'] );
 		// $instance['orderby']   = sanitize_text_field( $new_instance['orderby'] );
 		// $instance['order']     = sanitize_text_field( $new_instance['order'] );
-		// $instance['max']       = (int) $new_instance['max'];
+		// $instance['number']       = (int) $new_instance['number'];
 		// $instance['hide_title'] = absint( $new_instance['hide_title'] );
 
 		// taxonomies & filters
@@ -207,8 +201,8 @@ class Simple_Terms_Queries_Widget extends \WP_Widget
 		// $instance['show_count']   = isset( $new_instance['show_count'] ) ? 1 : 0 ;
 
 		// styles & layout
-		// $instance['tax'] = isset( $new_instance['tax'] ) ?
-			// sanitize_text_field( $new_instance['tax'] ) : 'category';
+		// $instance['taxanomy'] = isset( $new_instance['taxanomy'] ) ?
+			// sanitize_text_field( $new_instance['taxanomy'] ) : 'category';
 
 		// build out the instance for devs
 		$instance['id_base']       = $this->id_base;

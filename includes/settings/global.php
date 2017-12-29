@@ -23,9 +23,9 @@ $data = array(
         'input_class' => 'widefat',
         ),
     array(
-        'field_id'    => 'tax',
-        'id'          => $args['widget']->get_field_id( 'tax' ),
-        'name'        => $args['widget']->get_field_name( 'tax' ),
+        'field_id'    => 'taxanomy',
+        'id'          => $args['widget']->get_field_id( 'taxanomy' ),
+        'name'        => $args['widget']->get_field_name( 'taxanomy' ),
         'default'     => 'category',
         'type'        => 'select',
         'options'     => $taxes,
@@ -33,29 +33,18 @@ $data = array(
         'input_class' => 'widefat',
         ),
     array(
-        'field_id'    => 'orderby',
-        'id'          => $args['widget']->get_field_id( 'orderby' ),
-        'name'        => $args['widget']->get_field_name( 'orderby' ),
+        'field_id' => 'list_style',
+        'id'          => $args['widget']->get_field_id( 'list_style' ),
+        'name'        => $args['widget']->get_field_name( 'list_style' ),
         'type'        => 'select',
         'options'      => array(
-            'name'       => __( 'Category Name', 'advanced-categories-widget' ),
-            'count'      => __( 'Post Count', 'advanced-categories-widget' ),
-        ),
-        'label'       => __( 'Order by:', DOMAIN ),
+            'div' => __( 'Blocks (div)' ),
+            'ul' => __( 'Unordered List (ul)' ),
+            'ol' => __( 'Ordered List (ol)' ),
+            ),
+        'label'       => __('List Format:', DOMAIN),
         'input_class' => 'widefat',
-    ),
-    array(
-        'field_id'    => 'order',
-        'id'          => $args['widget']->get_field_id( 'order' ),
-        'name'        => $args['widget']->get_field_name( 'order' ),
-        'type'        => 'select',
-        'options'      => array(
-            'desc' => __('Descending', DOMAIN),
-            'asc'  => __('Ascending', DOMAIN),
         ),
-        'label'       => __( 'Order:', DOMAIN ),
-        'input_class' => 'widefat',
-    ),
 );
 
 return $data;

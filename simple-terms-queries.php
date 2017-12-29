@@ -326,6 +326,10 @@ class Utils
 
         $thumb = apply_filters( 'acatw_term_thumbnail', $_thumb, $term, $instance );
 
+        if( ! $thumb ) {
+            return '';
+        }
+
         return $thumb;
 
     }
@@ -351,40 +355,79 @@ class Utils
         return $options;
     }
 
+    static function _term_format( $terms, $instance, $res = array() )
+    {
+        foreach ($terms as $term) {
+            if( $term->parent && $instance['hierarchical'] ) {
+                $res[ $term->parent ]['child'][ $term->term_id ]['term'] = $term;
+            }
+            else {
+                $res[ $term->term_id ]['term'] = $term;
+            }
+        }
+
+        return $res;
+    }
+
     public static function get_widget_categories( $instance, $widget )
     {
-        if( empty( $instance['tax_term'] ) ) {
-            return array();
+        $result = array();
+        $args = array(
+            'taxonomy'      => $instance['taxanomy'],
+            'orderby'       => $instance['orderby'],
+            'order'         => $instance['order'],
+            'hide_empty'    => ! $instance['show_empty'] ? true : false,
+            // 'object_ids'    => null,
+            // 'include'       => array(),
+            // 'exclude'       => array(),
+            // 'exclude_tree'  => array(),
+            'number'        => '',
+            // 'fields'        => 'all',
+            // 'count'         => false,
+            // 'slug'          => '',
+            // 'parent'         => '',
+            'hierarchical'  => 1, //$instance['hierarchical'],
+            // 'child_of'      => 0,
+            // 'get'           => '',
+            // 'name__like'    => '',
+            // 'pad_counts'    => false,
+            // 'offset'        => '',
+            // 'search'        => '',
+            // 'cache_domain'  => 'core',
+            // 'name'          => '',
+            'childless'     => false, // true пропустит термины у которых есть дочерние термины.
+            // 'update_term_meta_cache' => true, // подгружать метаданные в кэш
+            // 'meta_query'    => '',
+            );
+
+        $terms = get_terms( $args );
+        if ( ! is_wp_error( $terms ) ) {
+            $result = self::_term_format( $terms, $instance );
         }
 
-        $_include_taxonomies = array();
-        $_include_ids = array();
+        return $result;
 
-        foreach( $instance['tax_term'] as $taxonomy => $term_ids ) {
-            $_include_taxonomies[] = $taxonomy;
-            array_walk_recursive( $term_ids, function( $value, $key ) use ( &$_include_ids ) {
-                $_include_ids[$key] = $value;
-            } );
-        }
+        // if( empty( $instance['tax_term'] ) ) {
+        //     return array();
+        // }
 
-        $r = array(
-            'taxonomy'   => $_include_taxonomies,
-            'orderby'    => $instance['orderby'],
-            'order'      => $instance['order'],
-            'hide_empty' => 0,
-            'include'    => $_include_ids
-        );
+        // $_include_taxonomies = array();
+        // $_include_ids = array();
 
-        $categories = get_terms( $_include_taxonomies, $r );
+        // foreach( $instance['tax_term'] as $taxonomy => $term_ids ) {
+        //     $_include_taxonomies[] = $taxonomy;
+        //     array_walk_recursive( $term_ids, function( $value, $key ) use ( &$_include_ids ) {
+        //         $_include_ids[$key] = $value;
+        //     } );
+        // }
 
-        if ( is_wp_error( $categories ) ) {
-            $categories = array();
-        } else {
-            $categories = (array) $categories;
-        }
-
-        return $categories;
-
+        // $r = array(
+        //     'taxonomy'   => $_include_taxonomies,
+        //     'orderby'    => $instance['orderby'],
+        //     'order'      => $instance['order'],
+        //     'hide_empty' => 0,
+        //     'include'    => $_include_ids
+        // );
     }
 
     public static function build_section_header( $title = 'Settings' )

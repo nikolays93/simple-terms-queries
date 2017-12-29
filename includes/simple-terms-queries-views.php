@@ -10,13 +10,14 @@ class Widget_Views
 
 	private function __construct(){}
 
-	public static function start_list( $instance, $categories, $echo = true )
+	public static function start_list( $instance, $categories, $echo = true, $level = 0 )
 	{
 		if( ! in_array($instance['list_style'], array('div', 'ol', 'ul')) ) {
 			$instance['list_style'] = 'ul';
 		}
 
-		$start = sprintf( '<%1$s class="simple-terms-list">', $instance['list_style'] );
+		$start = sprintf( '<%s class="simple-terms-list level-%d">',
+            $instance['list_style'], $level );
 
 		if( ! $echo )
 			return $start;
@@ -29,7 +30,7 @@ class Widget_Views
 		if( ! $term ) return;
 
 		$item_id    = self::get_item_id( $term, $instance );
-		$item_class      = 'simple-terms-list-item ' . self::get_item_class( $term, $instance );
+		$item_class      = 'st-list-item ' . self::get_item_class( $term, $instance );
 
 		if( 'div' !== ($list_item = $instance['list_style']) ) {
 			$list_item = 'li';
@@ -45,37 +46,33 @@ class Widget_Views
 
 	public static function list_item( $term, $instance, $categories, $echo = true )
 	{
-
-		$args = wp_parse_args( $args, array(
+		$args = wp_parse_args( $instance, array(
 			'item_id'    => self::get_item_id( $term, $instance ),
 			'item_class' => self::get_item_class( $term, $instance ),
 			'item_desc'  => self::get_term_excerpt( $term, $instance ),
-			'show_thumb' => '',
-			'show_count' => '',
+            'show_desc'  => '',
 			) );
 
-		if( ! empty( $instance['show_thumb'] ) ) {
-			$args['show_thumb'] = self::the_item_thumbnail_div( $term, $instance, false );
-		}
+        $args['show_thumb'] = $instance['show_thumb'] ?
+            self::the_item_thumbnail_div( $term, $instance, false ) : '';
 
-		if( ! empty( $instance['show_count'] ) ) {
-			$args['show_count'] = self::the_term_post_count( $term, $instance, false );
-		}
+        $args['show_count'] = $instance['show_count'] ?
+            " <small class='count'>( {$term->count} )</small>" : '';
 
 		$result = array();
-		$result[] = sprintf('<div id="term-%s" class="%s">', $args['id'], $args['item_class']);
+		$result[] = sprintf('<div id="term-%s" class="%s">', $args['item_id'], $args['item_class']);
 		$result[] = $args['show_thumb'];
-		$result[] = printf( '<h3 class="term-title simple-term-title"><a href="%s" rel="bookmark">%s</a></h3>',
+		$result[] = sprintf( '<h4 class="term-title simple-term-title"><a href="%s" rel="bookmark">%s</a>%s</h4>',
 					esc_url( get_term_link( $term ) ),
-					$term->name
+					$term->name,
+                    $args['show_count']
 				);
-		$result[] = $args['show_count'];
 		if( $args['show_desc'] ) {
-			$result[] = '<span class="term-summary acatw-term-summary">';
+			$result[] = '<span class="term-description">';
 			$result[] = $args['item_desc'];
 			$result[] = '</span><!-- /.term-summary -->';
 		}
-		$result[] = "</div><!-- #term-## -->";
+		$result[] = "</div>";
 
 		$result = implode("\n", $result);
 
@@ -96,7 +93,6 @@ class Widget_Views
 
 		echo $html;
 	}
-
 
 	public static function end_list( $instance, $categories, $echo = true )
 	{
@@ -124,8 +120,12 @@ class Widget_Views
         if( ! $term ) return '';
 
         $classes   = array('simple-term-item');
-        $classes[] = 'simple-term-' . $term->taxonomy . '-item';
-        $classes[] = 'simple-term-' . $term->taxonomy . '-item-' . $term->term_id;
+        $classes[] = 'st-' . $term->taxonomy . '-item';
+        $classes[] = 'st-' . $term->taxonomy . '-item-' . $term->term_id;
+
+        if( $term->term_id == get_queried_object_id() ) {
+            $classes[] = 'active';
+        }
 
         if ( $term->parent > 0 ) {
             $classes[] = 'child-term';
@@ -173,69 +173,76 @@ class Widget_Views
 			return '';
 		}
 
-		$_html = '';
-		$_thumb = Advanced_Categories_Widget_Utils::get_term_thumbnail( $term, $instance );
+		$html = '';
+		$thumb = Utils::get_term_thumbnail( $term, $instance );
 
-		$_classes = array();
-		$_classes[] = 'acatw-term-thumbnail';
+		// $class_str = implode( ' ', $classes );
 
-		$classes = apply_filters( 'acatw_thumbnail_div_class', $_classes, $instance, $term );
-		$classes = ( ! is_array( $classes ) ) ? (array) $classes : $classes ;
-		$classes = array_map( 'sanitize_html_class', $classes );
-
-		$class_str = implode( ' ', $classes );
-
-		if( '' !== $_thumb ) {
-
-			$_html .= sprintf('<span class="%1$s">%2$s</span>',
-				$class_str,
-				sprintf('<a href="%s">%s</a>',
-					esc_url( get_term_link( $term ) ),
-					$_thumb
-				)
+		if( '' !== $thumb ) {
+			$html .= sprintf('<span class="term-thumbnail"><a href="%s">%2$s</a></span>',
+                esc_url( get_term_link( $term ) ),
+                $thumb
 			);
-
 		};
 
-		$html = apply_filters( 'acatw_item_thumbnail_div', $_html, $term, $instance );
-
-		if( $echo ) {
-			echo $html;
-		} else {
+		if( ! $echo )
 			return $html;
-		}
+
+        echo $html;
 	}
 
-	public static function the_term_post_count( $term = 0, $instance = array(), $echo = true )
-	{
-		if ( empty( $term ) ) {
-			return '';
-		}
+    public static function recursive_list_item( $categories, $instance, $level = 0 ) {
 
-		$type_text = ( $term->count > 1 ) ? 'Posts' : 'Post' ;
-		$type_text = apply_filters( 'acatw_post_count_posttype', $type_text, $term->count );
+        Widget_Views::start_list( $instance, $categories, true, $level );
+        foreach( $categories as $term_id => $arrItem ) {
+            if( ! isset($arrItem['term']) )
+                continue;
 
-		$term_count = number_format_i18n( $term->count );
+            Widget_Views::start_list_item( $arrItem['term'], $instance, $categories );
 
-		/* translators: 1: Number of posts 2: post type name */
-		$_count_text = sprintf( __( '%1$d %2$s', 'advanced-categories-widget'), 
-			$term_count,
-			$type_text
-		);
+                Widget_Views::list_item( $arrItem['term'], $instance, $categories );
 
-		$_html = sprintf( '<span class="acatw-post-count term-post-count"><a href="%1$s" rel="bookmark">%2$s</a></span>',
-			esc_url( get_term_link( $term ) ),
-			$_count_text
-		);
+                if( isset($arrItem['child']) ) {
+                    $level++;
 
-		$html = apply_filters( 'acatw_post_count_text', $_html, $term, $instance );
+                    self::recursive_list_item( $arrItem['child'], $instance, $level );
+                }
 
-		if( $echo ) {
-			echo $html;
-		} else {
-			return $html;
-		}
-	}
+            Widget_Views::end_list_item( $arrItem['term'], $instance, $categories );
+        }
+
+        Widget_Views::end_list( $instance, $categories );
+    }
+
+	// public static function the_term_post_count( $term = 0, $instance = array(), $echo = true )
+	// {
+	// 	if ( empty( $term ) ) {
+	// 		return '';
+	// 	}
+
+	// 	$type_text = (  > 1 ) ? 'Posts' : 'Post' ;
+
+	// 	$term_count = number_format_i18n( $term->count );
+
+	// 	/* translators: 1: Number of posts 2: post type name */
+	// 	$_count_text = sprintf( __( '%1$d %2$s', 'advanced-categories-widget'), 
+	// 		$term_count,
+	// 		$type_text
+	// 	);
+
+	// 	$_html = sprintf( '<span class="acatw-post-count term-post-count"><a href="%1$s" rel="bookmark">%2$s</a></span>',
+	// 		esc_url( get_term_link( $term ) ),
+	// 		$_count_text
+	// 	);
+
+	// 	$html = apply_filters( 'acatw_post_count_text', $_html, $term, $instance );
+
+	// 	if( $echo ) {
+	// 		echo $html;
+	// 	} else {
+	// 		return $html;
+	// 	}
+	// }
 
 }
 
