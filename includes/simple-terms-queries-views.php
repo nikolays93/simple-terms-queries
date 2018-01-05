@@ -60,9 +60,9 @@ class Widget_Views
             " <small class='count'>( {$term->count} )</small>" : '';
 
 		$result = array();
-		$result[] = sprintf('<div id="term-%s" class="%s">', $args['item_id'], $args['item_class']);
+		// $result[] = sprintf('<div id="%s" class="%s">', $args['item_id'], $args['item_class']);
 		$result[] = $args['show_thumb'];
-		$result[] = sprintf( '<h4 class="term-title simple-term-title"><a href="%s" rel="bookmark">%s</a>%s</h4>',
+		$result[] = sprintf( '<h4><a href="%s" rel="bookmark">%s</a>%s</h4>',
 					esc_url( get_term_link( $term ) ),
 					$term->name,
                     $args['show_count']
@@ -72,7 +72,7 @@ class Widget_Views
 			$result[] = $args['item_desc'];
 			$result[] = '</span><!-- /.term-summary -->';
 		}
-		$result[] = "</div>";
+		// $result[] = "</div>";
 
 		$result = implode("\n", $result);
 
@@ -119,9 +119,9 @@ class Widget_Views
     {
         if( ! $term ) return '';
 
-        $classes   = array('simple-term-item');
+        $classes   = array('st-item');
         $classes[] = 'st-' . $term->taxonomy . '-item';
-        $classes[] = 'st-' . $term->taxonomy . '-item-' . $term->term_id;
+        $classes[] = 'st-item-term-' . $term->term_id;
 
         if( $term->term_id == get_queried_object_id() ) {
             $classes[] = 'active';
@@ -206,6 +206,9 @@ class Widget_Views
                     $level++;
 
                     self::recursive_list_item( $arrItem['child'], $instance, $level );
+                }
+                else {
+                    $level = 0;
                 }
 
             Widget_Views::end_list_item( $arrItem['term'], $instance, $categories );

@@ -355,18 +355,30 @@ class Utils
         return $options;
     }
 
-    static function _term_format( $terms, $instance, $res = array() )
+    static function _term_format_recursive( $terms, $instance, $res = array() )
     {
         foreach ($terms as $term) {
-            if( $term->parent && $instance['hierarchical'] ) {
+            if( $term->parent )
                 $res[ $term->parent ]['child'][ $term->term_id ]['term'] = $term;
+            else
+                $res[ $term->term_id ]['term'] = $term;
+        }
+
+        return $res;
+    }
+
+    static function _term_format( $terms, $instance )
+    {
+        foreach ($terms as $term) {
+            if( $instance['hierarchical'] ) {
+                $res = _term_format_recursive( $terms, $instance );
             }
             else {
                 $res[ $term->term_id ]['term'] = $term;
             }
         }
 
-        return $res;
+        return apply_filters( 'st_term_format', $res );
     }
 
     public static function get_widget_categories( $instance, $widget )

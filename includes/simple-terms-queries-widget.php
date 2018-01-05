@@ -11,7 +11,7 @@ class Simple_Terms_Queries_Widget extends \WP_Widget
 	{
 		$this->alt_option_name = 'simple-terms-queries';
 		parent::__construct(
-			'simple-terms-queries',       // $this->id_base
+			'st-queries',       // $this->id_base
 			__( 'Simple Terms Queries' ), // $this->name
 			array(                        // $this->widget_options
 				'classname'                   => $this->alt_option_name,
@@ -81,7 +81,7 @@ class Simple_Terms_Queries_Widget extends \WP_Widget
 		<div class="st-widget st-wrap">
 
 			<?php
-			if( ! empty( $categories ) || ! false ) :
+			if( ! empty( $categories ) ) :
 
 				Widget_Views::recursive_list_item( $categories, $instance );
 
