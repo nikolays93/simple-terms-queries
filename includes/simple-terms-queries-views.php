@@ -62,10 +62,10 @@ class Widget_Views
 		$result = array();
 		// $result[] = sprintf('<div id="%s" class="%s">', $args['item_id'], $args['item_class']);
 		$result[] = $args['show_thumb'];
-		$result[] = sprintf( '<h4><a href="%s" rel="bookmark">%s</a>%s</h4>',
+		$result[] = sprintf( '<a href="%s" rel="bookmark">%s</a>%s',
 					esc_url( get_term_link( $term ) ),
 					$term->name,
-                    $args['show_count']
+                    $args['show_count'] ? " ( {$args['show_count']} )" : ''
 				);
 		if( $args['show_desc'] ) {
 			$result[] = '<span class="term-description">';

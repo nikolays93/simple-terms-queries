@@ -371,7 +371,7 @@ class Utils
     {
         foreach ($terms as $term) {
             if( $instance['hierarchical'] ) {
-                $res = _term_format_recursive( $terms, $instance );
+                $res = self::_term_format_recursive( $terms, $instance );
             }
             else {
                 $res[ $term->term_id ]['term'] = $term;
