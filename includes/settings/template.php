@@ -1,6 +1,12 @@
 <?php
 namespace CDevelopers\Query\Terms;
 
+$lorem = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Possimus ex voluptatum quo ducimus suscipit facere vitae beatae placeat temporibus quod libero voluptas, architecto, consectetur magnam commodi eum, vel et! Hic!
+Numquam rerum, sunt rem officia similique, doloremque obcaecati. Assumenda non esse, magni inventore nulla veritatis vel, itaque eveniet qui veniam, sapiente velit voluptatum consequuntur dolorum quia animi accusamus recusandae ratione.
+Deserunt architecto, totam iusto vero quas, ut molestiae, harum, odit cupiditate exercitationem reprehenderit ea soluta. Eius velit quo, cupiditate quasi, soluta, eos odio possimus molestias recusandae accusamus expedita aut libero.
+Non sint nihil ea iure consectetur libero veniam at deserunt facere, dolore reiciendis quidem omnis vero, aperiam laboriosam sed voluptate, fugiat alias accusamus sunt dolorem eveniet obcaecati in tempore. Iure!
+Eaque unde libero consequatur aliquam? Optio, magni id in libero corrupti nisi voluptate ex ipsum, voluptatibus accusantium esse minus. Eveniet voluptate quae, perferendis totam voluptatum sequi, omnis labore blanditiis id.';
+
 $data = array(
     array(
         'field_id' => 'show_title',
@@ -53,10 +59,10 @@ $data = array(
                 <span class="widget-panel-preview-container">
                     <span class="widget-panel-excerpt-preview">
                         <span class="widget-panel-excerpt">
-                            '.wp_trim_words( Utils::sample_description(), 15, '&hellip;' ).'
+                            '.wp_trim_words( $lorem, 15, '&hellip;' ).'
                         </span>
                         <span class="widget-panel-excerpt-sample" aria-hidden="true" role="presentation">
-                            '.Utils::sample_description().'
+                            '.$lorem.'
                         </span>
                     </span>
                 </span>

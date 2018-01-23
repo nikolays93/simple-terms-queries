@@ -1,10 +1,10 @@
 <?php
 
 /*
-Plugin Name: Simple Terms Queries Widget
+Plugin Name: Simple Terms Queries
+Plugin URI: https://github.com/nikolays93
 Description: Build Terms list widget
-Plugin URI: http://#
-Version: 1.0
+Version: 0.0.1
 Author: NikolayS93
 Author URI: https://vk.com/nikolays_93
 Author EMAIL: nikolayS93@ya.ru
@@ -15,42 +15,50 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 namespace CDevelopers\Query\Terms;
 
 if ( ! defined( 'ABSPATH' ) )
-	exit; // disable direct access
+  exit; // disable direct access
 
 const DOMAIN = 'simple-terms-queries';
 
 class Utils
 {
     const OPTION = 'st-queries';
+    const SHORTCODE = 'st-queries';
 
     private static $initialized;
     private static $settings;
     private function __construct() {}
     private function __clone() {}
 
-    static function uninstall() { delete_option(self::OPTION); }
-    static function activate() { add_option( self::OPTION, array() ); }
+    static function activate() { // add_option( self::OPTION, array() );
+    }
+    static function uninstall() { // delete_option(self::OPTION);
+    }
 
     private static function include_required_classes()
     {
-        $classes = self::get_plugin_dir('classes');
-        $includes = self::get_plugin_dir('includes');
-        $arrClasses = array(
-            __NAMESPACE__ . '\WP_Admin_Forms'     => $classes . '/wp-admin-forms.php',
-            );
+        $dir_include = self::get_plugin_dir('includes');
+        $dir_class = self::get_plugin_dir('classes');
 
-        foreach ($arrClasses as $classname => $path) {
+        $classes = array(
+            __NAMESPACE__ . '\WP_Admin_Forms'     => $dir_class . '/wp-admin-forms.php',
+        );
+
+        foreach ($classes as $classname => $dir) {
             if( ! class_exists($classname) ) {
-                require_once $path;
+                self::load_file_if_exists( $dir );
             }
         }
 
         // includes
-        $arrIncludes = array(
-        	$includes . '/simple-terms-queries-widget.php',
-        	$includes . '/simple-terms-queries-views.php',
-        	);
-        self::load_file_if_exists( $arrIncludes );
+        self::load_file_if_exists( $dir_include . '/simple-terms-queries-widget.php' );
+        self::load_file_if_exists( $dir_include . '/simple-terms-queries-public.php' );
+        self::load_file_if_exists( $dir_include . '/simple-terms-queries-shortcode.php' );
+    }
+
+    public static function register_shortcode( $atts = array(), $content = '' ) {
+        $atts = shortcode_atts( array(
+            'id' => 'value',
+            ), $atts, self::SHORTCODE );
     }
 
     public static function initialize()
@@ -62,14 +70,42 @@ class Utils
         load_plugin_textdomain( DOMAIN, false, DOMAIN . '/languages/' );
         self::include_required_classes();
 
-        add_action( 'widgets_init', function(){ register_widget( __NAMESPACE__ . '\Simple_Terms_Queries_Widget' ); } );
+        add_action('widgets_init', array(__NAMESPACE__ . '\Simple_Terms_Queries_Widget', 'register_himself'));
+        add_shortcode( self::SHORTCODE, array(__NAMESPACE__ . '\Simple_Terms_Queries_Shortcode', 'init') );
 
-		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_enqueues' ) );
-		add_action( 'customize_controls_enqueue_scripts', array( __CLASS__, 'admin_enqueues' ) );
-		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_enqueues' ) );
-		add_action( 'customize_controls_enqueue_scripts', array( __CLASS__, 'admin_enqueues' ) );
+        add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_enqueues' ) );
+        add_action( 'customize_controls_enqueue_scripts', array( __CLASS__, 'admin_enqueues' ) );
 
         self::$initialized = true;
+    }
+
+    /**
+     * Подключаем нужные скрипты
+     */
+    public static function admin_enqueues( $hook )
+    {
+        global $pagenow;
+
+        $enqueue = false;
+        if( 'customize.php' == $pagenow || 'widgets.php' == $pagenow || 'widgets.php' == $hook ){
+            $enqueue = true;
+        };
+
+        wp_enqueue_style(
+            'widget-panels',
+            self::get_plugin_url('assets') . '/widget-panels.css',
+            array(),
+            '1.0.0',
+            'all'
+        );
+
+        if( ! $enqueue ){
+            return;
+        };
+
+        wp_enqueue_script( 'widget-panels', self::get_plugin_url('assets') . '/widget-panels.js', array( 'jquery' ), '', true );
+
+        #wp_enqueue_script( 'acatw-admin-scripts', self::get_plugin_url() . 'js/admin.js', array( 'widget-panels' ), '', true );
     }
 
     /**
@@ -86,15 +122,21 @@ class Utils
         $date = new \DateTime();
         $date_str = $date->format(\DateTime::W3C);
 
-        $handle = fopen(__DIR__ . "/debug.log", "a+");
-        fwrite($handle, "[{$date_str}] {$msg} ({$dir})\r\n");
-        fclose($handle);
+        if( $handle = @fopen(__DIR__ . "/debug.log", "a+") ) {
+            fwrite($handle, "[{$date_str}] {$msg} ({$dir})\r\n");
+            fclose($handle);
+        }
+        elseif (defined('WP_DEBUG_DISPLAY') && WP_DEBUG_DISPLAY) {
+            echo sprintf( __('Can not have access the file %s (%s)', DOMAIN),
+                __DIR__ . "/debug.log",
+                $dir );
+        }
     }
 
     /**
      * Загружаем файл если существует
      */
-    public static function load_file_if_exists( $file_array, $args = array() )
+    public static function load_file_if_exists( $file_array, $args = array(), $once = false )
     {
         $cant_be_loaded = __('The file %s can not be included', DOMAIN);
         if( is_array( $file_array ) ) {
@@ -105,7 +147,7 @@ class Utils
                     continue;
                 }
 
-                $result[] = include( $path );
+                $result[] = ($once) ? include_once( $path ) : include( $path );
             }
         }
         else {
@@ -114,7 +156,7 @@ class Utils
                 return false;
             }
 
-            $result = include( $file_array );
+            $result = ($once) ? include_once( $file_array ) : include( $file_array );
         }
 
         return $result;
@@ -168,173 +210,13 @@ class Utils
         return self::load_file_if_exists( self::get_plugin_dir('settings') . '/' . $filename, $args );
     }
 
-    public static function admin_enqueues( $hook )
-	{
-		global $pagenow;
-
-		$enqueue = false;
-
-		if( 'customize.php' == $pagenow || 'widgets.php' == $pagenow || 'widgets.php' == $hook ){
-			$enqueue = true;
-		};
-
-		wp_enqueue_style(
-			'widget-panels',
-			self::get_plugin_url('assets') . '/widget-panels.css',
-			array(),
-			'1.0.0',
-			'all'
-		);
-
-		if( ! $enqueue ){
-			return;
-		};
-
-		wp_enqueue_script( 'widget-panels', self::get_plugin_url('assets') . '/widget-panels.js', array( 'jquery' ), '', true );
-
-		#wp_enqueue_script( 'acatw-admin-scripts', self::get_plugin_url() . 'js/admin.js', array( 'widget-panels' ), '', true );
-	}
-
-    public static function sample_description()
-    {
-        $description = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Amet officiis laborum aspernatur ipsum quos. Similique doloribus reprehenderit perspiciatis aliquid mollitia, id quae earum ipsa harum delectus deserunt vel, non, alias. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Asperiores reiciendis nulla odio harum vero, nisi quos quaerat velit. Ipsum nam, eius illum odio nulla aliquid, distinctio excepturi esse molestiae modi.' . "\n";
-        $description.= 'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Eos assumenda nulla illum, eligendi inventore odit pariatur repellat eius quaerat error, illo ad tenetur quis ducimus. Saepe repellat maiores eaque voluptates!';
-
-        return $description;
-    }
-
-    public static function get_allowed_image_sizes( $fields = 'name' )
-    {
-        global $_wp_additional_image_sizes;
-        $wp_defaults = array( 'thumbnail', 'medium', 'medium_large', 'large' );
-
-        $_sizes = get_intermediate_image_sizes();
-
-        if( count( $_sizes ) ) {
-            sort( $_sizes );
-            $_sizes = array_combine( $_sizes, $_sizes );
-        }
-
-        $_sizes = apply_filters( 'acatw_allowed_image_sizes', $_sizes );
-        $sizes = self::sanitize_select_array( $_sizes );
-
-        if( count( $sizes )&& 'all' === $fields ) {
-
-            $image_sizes = array();
-            natsort( $sizes );
-
-            foreach ( $sizes as $_size ) {
-                if ( in_array( $_size, $wp_defaults ) ) {
-                    $width = absint( get_option( "{$_size}_size_w" ) );
-                    $height = absint(  get_option( "{$_size}_size_h" ) );
-                    $dimensions = ' (' . $width . ' x ' . $height . ')';
-
-                    $image_sizes[ $_size ] = __( ucfirst($_size) ) . $dimensions;
-                    // $image_sizes[$_size]['crop']   = (bool) get_option( "{$_size}_crop" );
-                } else if( isset( $_wp_additional_image_sizes[ $_size ] )  ) {
-                    $width = absint( $_wp_additional_image_sizes[ $_size ]['width'] );
-                    $height = absint( $_wp_additional_image_sizes[ $_size ]['height'] );
-                    $dimensions = ' (' . $width . ' x ' . $height . ')';
-
-                    $image_sizes[ $_size ] = __( ucfirst($_size) ) . $dimensions;
-                    // $image_sizes[$_size]['crop']   = (bool) $_wp_additional_image_sizes[ $_size ]['crop'];
-                }
-            }
-
-            $sizes = $image_sizes;
-
-        };
-
-        return $sizes;
-    }
-
-    public static function get_image_size( $size = 'thumbnail', $fields = 'all' )
-    {
-        $sizes = self::get_allowed_image_sizes( $_fields = 'all' );
-
-        if( count( $sizes ) && isset( $sizes[$size] ) ) :
-            if( 'all' === $fields ) {
-                return $sizes[$size];
-            } else {
-                return $sizes[$size]['name'];
-            }
-        endif;
-
-        return false;
-    }
-
-    public static function get_term_thumbnail( $term = 0, $instance = array() )
-    {
-
-        if ( empty( $term ) ) {
-            return '';
-        }
-
-        // future compatible?
-        $meta_field = apply_filters( 'acatw_thumb_meta_field', '_thumbnail_id', $term, $instance );
-
-        $_thumbnail_id = get_term_meta( $term->term_id, $meta_field, true );
-        $_thumbnail_id = absint( $_thumbnail_id );
-
-        // no thumbnail
-        // @todo placeholder?
-        if( ! $_thumbnail_id ) {
-            return '';
-        }
-
-        $_classes = array();
-        $_classes[] = 'acatw-term-image';
-        $_classes[] = 'acatw-alignleft';
-
-        // was registered size selected?
-        $_size = $instance['thumb_size'];
-
-        // custom size entered
-        if( empty( $_size ) ){
-            $_w = absint( $instance['thumb_size_w'] );
-            $_h = absint( $instance['thumb_size_h'] );
-            $_size = "acatw-thumbnail-{$_w}-{$_h}";
-        }
-
-        // check if the size is registered
-        $_size_exists = self::get_image_size( $_size );
-
-        if( $_size_exists ){
-            $_get_size = $_size;
-            $_w = absint( $_size_exists['width'] );
-            $_h = absint( $_size_exists['height'] );
-            $_classes[] = "size-{$_size}";
-        } else {
-            $_get_size = array( $_w, $_h);
-        }
-
-        $classes = apply_filters( 'acatw_term_thumb_class', $_classes, $term, $instance );
-        $classes = ( ! is_array( $classes ) ) ? (array) $classes : $classes ;
-        $classes = array_map( 'sanitize_html_class', $classes );
-
-        $class_str = implode( ' ', $classes );
-
-        $_thumb = wp_get_attachment_image(
-            $_thumbnail_id,
-            $_get_size,
-            false,
-            array(
-                'class' => $class_str,
-                'alt' => $term->name,
-                )
-            );
-
-        $thumb = apply_filters( 'acatw_term_thumbnail', $_thumb, $term, $instance );
-
-        if( ! $thumb ) {
-            return '';
-        }
-
-        return $thumb;
-
-    }
-
-    public static function sanitize_select_array( $options, $sort = true )
+    /**
+     * Sanitize option values (escape html) and native wordpress sanitize keys.
+     * @param  Array   $options list of options
+     * @param  boolean $sort    need sorts?
+     * @return Array   $options results
+     */
+    public static function sanitize_select_array( $options, $sort = false )
     {
         $options = ( ! is_array( $options ) ) ? (array) $options : $options ;
 
@@ -355,146 +237,26 @@ class Utils
         return $options;
     }
 
-    static function _term_format_recursive( $terms, $instance, $res = array() )
+    /**
+     * Recursively sort an array of taxonomy terms hierarchically. Child categories will be
+     * placed under a 'children' member of their parent term.
+     * @param Array   $cats     taxonomy term objects to sort
+     * @param Array   $into     result array to put them in
+     * @param integer $parentId the current parent ID to put them in
+     */
+    static function sort_terms_hierarchicaly(Array &$cats, Array &$into, $parentId = 0)
     {
-        foreach ($terms as $term) {
-            if( $term->parent )
-                $res[ $term->parent ]['child'][ $term->term_id ]['term'] = $term;
-            else
-                $res[ $term->term_id ]['term'] = $term;
-        }
-
-        return $res;
-    }
-
-    static function _term_format( $terms, $instance )
-    {
-        foreach ($terms as $term) {
-            if( $instance['hierarchical'] ) {
-                $res = self::_term_format_recursive( $terms, $instance );
-            }
-            else {
-                $res[ $term->term_id ]['term'] = $term;
+        foreach ($cats as $i => $cat) {
+            if ($cat->parent == $parentId) {
+                $into[$cat->term_id] = $cat;
+                unset($cats[$i]);
             }
         }
 
-        return apply_filters( 'st_term_format', $res );
-    }
-
-    public static function get_widget_categories( $instance, $widget )
-    {
-        $result = array();
-        $args = array(
-            'taxonomy'      => $instance['taxanomy'],
-            'orderby'       => $instance['orderby'],
-            'order'         => $instance['order'],
-            'hide_empty'    => ! $instance['show_empty'] ? true : false,
-            // 'object_ids'    => null,
-            // 'include'       => array(),
-            // 'exclude'       => array(),
-            // 'exclude_tree'  => array(),
-            'number'        => '',
-            // 'fields'        => 'all',
-            // 'count'         => false,
-            // 'slug'          => '',
-            // 'parent'         => '',
-            'hierarchical'  => 1, //$instance['hierarchical'],
-            // 'child_of'      => 0,
-            // 'get'           => '',
-            // 'name__like'    => '',
-            // 'pad_counts'    => false,
-            // 'offset'        => '',
-            // 'search'        => '',
-            // 'cache_domain'  => 'core',
-            // 'name'          => '',
-            'childless'     => false, // true пропустит термины у которых есть дочерние термины.
-            // 'update_term_meta_cache' => true, // подгружать метаданные в кэш
-            // 'meta_query'    => '',
-            );
-
-        $terms = get_terms( $args );
-        if ( ! is_wp_error( $terms ) ) {
-            $result = self::_term_format( $terms, $instance );
+        foreach ($into as $topCat) {
+            $topCat->children = array();
+            self::sort_terms_hierarchicaly($cats, $topCat->children, $topCat->term_id);
         }
-
-        return $result;
-
-        // if( empty( $instance['tax_term'] ) ) {
-        //     return array();
-        // }
-
-        // $_include_taxonomies = array();
-        // $_include_ids = array();
-
-        // foreach( $instance['tax_term'] as $taxonomy => $term_ids ) {
-        //     $_include_taxonomies[] = $taxonomy;
-        //     array_walk_recursive( $term_ids, function( $value, $key ) use ( &$_include_ids ) {
-        //         $_include_ids[$key] = $value;
-        //     } );
-        // }
-
-        // $r = array(
-        //     'taxonomy'   => $_include_taxonomies,
-        //     'orderby'    => $instance['orderby'],
-        //     'order'      => $instance['order'],
-        //     'hide_empty' => 0,
-        //     'include'    => $_include_ids
-        // );
-    }
-
-    public static function build_section_header( $title = 'Settings' )
-    {
-        ob_start();
-        ?>
-
-        <div class="widget-panel-section-top">
-            <div class="widget-panel-top-action">
-                <a class="widget-panel-action-indicator hide-if-no-js" href="#"></a>
-            </div>
-            <div class="widget-panel-section-title">
-                <h4 class="widget-panel-section-heading">
-                    <?php printf( __( '%s', 'advanced-categories-widget' ), $title ); ?>
-                </h4>
-            </div>
-        </div>
-
-        <?php
-        $field = ob_get_clean();
-
-        return $field;
-    }
-
-    public static function build_term_select( $taxonomy, $label, $instance, $widget )
-    {
-        $args = apply_filters( 'acatw_build_term_select_args', array( 'hide_empty' => 0, 'number' => 99 ) );
-        $args['fields'] = 'all'; // don't allow override
-        $args['taxonomy'] = $taxonomy; // don't allow override
-        $_terms = get_terms( $taxonomy, $args );
-
-        if( empty( $_terms ) || is_wp_error( $_terms ) ) {
-            return;
-        }
-        ?>
-
-        <?php printf( '<p>%s:</p>', sprintf( __( '%s', 'advanced-categories-widget' ), $label ) ); ?>
-
-        <div class="widget-panel-multi-check">
-            <?php foreach( $_terms as $_term ) : ?>
-                <?php
-                $checked = (  ! empty( $instance['tax_term'][$_term->taxonomy][$_term->term_id] )) ? 'checked="checked"' : '' ;
-
-                printf( '<input id="%1$s" name="%2$s" value="%3$s" type="checkbox" %4$s/><label for="%1$s">%5$s (%6$s)</label><br />',
-                    $widget->get_field_id( 'tax_term-' . $taxonomy . '-' . $_term->term_id ),
-                    $widget->get_field_name( 'tax_term' ) . '['.$taxonomy.']['.$_term->term_id.']',
-                    $_term->term_id,
-                    $checked,
-                    sprintf( __( '%s', 'advanced-categories-widget' ), $_term->name ),
-                    $_term->count
-                );
-                ?>
-            <?php endforeach; ?>
-        </div>
-        <?php
     }
 }
 

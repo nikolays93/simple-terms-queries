@@ -13,7 +13,7 @@ $data[] = array(
     'label'       => __('Display Thumbnail', DOMAIN),
 );
 
-if( $sizes = Utils::get_allowed_image_sizes() ) {
+if( $sizes = false ) {
     $data[] = array(
         'field_id'     => 'thumb_size',
         'id'          => $args['widget']->get_field_id( 'thumb_size' ),
